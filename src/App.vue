@@ -6,21 +6,7 @@
 
     <header class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">
-          <span class="brand-mark" aria-hidden="true"></span>
-          Browser-only TOTP
-        </p>
         <h1>2FA / MFA 验证码</h1>
-        <p class="lede">
-          兼容 Oracle、AWS、Google Authenticator 常见 TOTP 验证码。密钥只在本次请求中计算，不写入数据库。
-        </p>
-
-        <div class="hero-tags" aria-label="功能标签">
-          <span>本地计算</span>
-          <span>支持 otpauth://</span>
-          <span>支持 Base32 secret</span>
-          <span>多行批量输入</span>
-        </div>
       </div>
 
       <aside class="clock-card" aria-label="北京时间">
@@ -66,30 +52,26 @@
 
         <div class="mini-strip">
           <span>{{ validCount }} 可用</span>
-          <span>{{ invalidCount ? `${invalidCount} 无效` : '等待生成' }}</span>
-          <span>仅浏览器本地计算</span>
+          <span>{{ invalidCount }} 无效</span>
+          <span>服务器时间会影响验证码，请确保部署环境已同步时间。</span>
         </div>
 
         <details class="api-details">
           <summary>
-            <span>API</span>
-            <small>默认折叠</small>
+            <span>^API</span>
           </summary>
 
           <div class="api-body">
-            <p class="api-note">
-              这个页面本身不写数据库，也不依赖后端。下面是你如果要接服务端时，可以直接复用的参数格式。
-            </p>
+            <p class="api-note">可直接复用的接口示例。</p>
 
-            <div v-for="example in apiExamples" :key="example.title" class="api-block">
+            <div v-for="example in apiExamples" :key="example.title" class="api-block compact">
               <div class="api-block-head">
                 <strong>{{ example.title }}</strong>
                 <button type="button" class="copy-btn" @click="copyText(example.sample)">
                   复制
                 </button>
               </div>
-              <pre>{{ example.sample }}</pre>
-              <p>{{ example.description }}</p>
+              <code>{{ example.sample }}</code>
             </div>
           </div>
         </details>
@@ -183,17 +165,14 @@ const apiExamples = [
   {
     title: 'GET /api/totp',
     sample: 'GET /api/totp?secret=BASE32&digits=6&period=30&algorithm=sha1',
-    description: '单个密钥生成当前验证码，适合做成轻量查询接口。',
-  },
-  {
-    title: 'POST /api/totp/batch',
-    sample: 'POST /api/totp/batch\n{ "items": ["JBSWY3DPEHPK3PXP", "otpauth://totp/AWS:root?secret=..."] }',
-    description: '批量输入，返回每条记录对应的解析结果和当前验证码。',
   },
   {
     title: 'GET /api/time',
     sample: 'GET /api/time',
-    description: '返回北京时间，和页面右上角保持一致。',
+  },
+  {
+    title: 'POST /api/totp/batch',
+    sample: 'POST /api/totp/batch { items: ["secret-or-otpauth://..."] }',
   },
 ];
 

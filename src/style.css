@@ -120,63 +120,23 @@ button {
 
 .hero {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .hero-copy {
   min-width: 0;
 }
 
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 0.42rem 0.82rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  color: #547095;
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  box-shadow: var(--shadow-soft);
-}
-
-.brand-mark {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 0 6px rgba(43, 103, 246, 0.08);
-}
-
 .hero h1 {
-  margin: 12px 0 8px;
-  font-size: clamp(2.05rem, 4.2vw, 4.1rem);
-  line-height: 0.96;
+  margin: 8px 0 0;
+  font-size: clamp(2.1rem, 4vw, 4rem);
+  line-height: 1;
   letter-spacing: -0.05em;
 }
 
-.lede {
-  max-width: 60ch;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.97rem;
-  line-height: 1.55;
-}
-
-.hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.hero-tags span,
 .mini-strip span,
 .token-meta span,
 .card-pill {
@@ -226,7 +186,7 @@ button {
 .workspace {
   display: grid;
   grid-template-columns: minmax(336px, 0.88fr) minmax(0, 1.12fr);
-  gap: 12px;
+  gap: 10px;
   align-items: stretch;
 }
 
@@ -242,7 +202,7 @@ button {
 
 .input-panel,
 .result-panel {
-  padding: 14px;
+  padding: 13px;
 }
 
 .result-panel {
@@ -257,7 +217,7 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .panel-kicker {
@@ -287,7 +247,7 @@ button {
 
 .input {
   width: 100%;
-  min-height: 248px;
+  min-height: 242px;
   padding: 0.96rem 1rem;
   border: 1px solid rgba(115, 137, 172, 0.18);
   border-radius: 20px;
@@ -373,19 +333,26 @@ button:disabled {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+  align-items: flex-start;
+}
+
+.mini-strip span:last-child {
+  flex: 1 1 100%;
+  border-style: dashed;
+  color: #5a6d8a;
 }
 
 .api-details {
-  margin-top: 14px;
+  margin-top: 12px;
   border-top: 1px solid rgba(115, 137, 172, 0.16);
-  padding-top: 10px;
+  padding-top: 9px;
 }
 
 .api-details > summary {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   list-style: none;
   cursor: pointer;
   color: var(--accent-3);
@@ -394,11 +361,6 @@ button:disabled {
 
 .api-details > summary::-webkit-details-marker {
   display: none;
-}
-
-.api-details > summary small {
-  color: var(--muted);
-  font-weight: 600;
 }
 
 .api-body {
@@ -421,12 +383,16 @@ button:disabled {
   padding: 12px;
 }
 
+.api-block.compact {
+  padding: 10px 12px;
+}
+
 .api-block-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .api-block strong {
@@ -441,16 +407,15 @@ button:disabled {
   color: #405570;
 }
 
-.api-block pre {
-  margin: 0;
-  padding: 12px;
+.api-block code {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
   border-radius: 14px;
-  overflow-x: auto;
   background: #f3f7ff;
   color: #193055;
-  font-size: 0.85rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
+  font-size: 0.84rem;
+  line-height: 1.5;
   word-break: break-word;
 }
 
@@ -609,8 +574,8 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 238px;
-  padding: 1.2rem;
+  min-height: 226px;
+  padding: 1rem 1.2rem;
   border: 1px dashed rgba(115, 137, 172, 0.24);
   border-radius: 22px;
   color: var(--muted);
@@ -642,7 +607,7 @@ button:disabled {
   }
 
   .primary-btn,
-  .ghost-btn {
+  .close-btn {
     width: 100%;
   }
 }
@@ -655,15 +620,15 @@ button:disabled {
 
   .input-panel,
   .result-panel {
-    padding: 14px;
+    padding: 12px;
   }
 
   .input {
-    min-height: 214px;
+    min-height: 206px;
   }
 
   .token-card {
-    min-height: 172px;
+    min-height: 168px;
   }
 
   .code-value {
