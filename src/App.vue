@@ -6,9 +6,8 @@
 
     <header class="topbar">
       <div class="hero-copy">
-        <p class="eyebrow">Batch / TOTP</p>
-        <h1>批量验证码生成器</h1>
-        <p class="lede">每行一个 secret 或 otpauth:// URL，右侧自动分卡显示。</p>
+        <h1>2FA / MFA</h1>
+        <p class="lede">兼容 Oracle、AWS、Google Authenticator 常见 TOTP 验证码。密钥只在本次请求中计算，不写入数据库。</p>
       </div>
     </header>
 
