@@ -1,55 +1,107 @@
 <template>
   <main class="page-shell">
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
-    <div class="ambient ambient-three"></div>
+    <div class="ambient ambient-a" aria-hidden="true"></div>
+    <div class="ambient ambient-b" aria-hidden="true"></div>
+    <div class="ambient ambient-c" aria-hidden="true"></div>
 
-    <header class="topbar">
+    <header class="hero">
       <div class="hero-copy">
-        <h1>2FA / MFA</h1>
-        <p class="lede">兼容 Oracle、AWS、Google Authenticator 常见 TOTP 验证码。密钥只在本次请求中计算，不写入数据库。</p>
+        <p class="eyebrow">
+          <span class="brand-mark" aria-hidden="true"></span>
+          Browser-only TOTP
+        </p>
+        <h1>2FA / MFA 验证码</h1>
+        <p class="lede">
+          兼容 Oracle、AWS、Google Authenticator 常见 TOTP 验证码。密钥只在本次请求中计算，不写入数据库。
+        </p>
+
+        <div class="hero-tags" aria-label="功能标签">
+          <span>本地计算</span>
+          <span>支持 otpauth://</span>
+          <span>支持 Base32 secret</span>
+          <span>多行批量输入</span>
+        </div>
       </div>
+
+      <aside class="clock-card" aria-label="北京时间">
+        <span class="clock-label">北京时间</span>
+        <strong class="clock-time">{{ beijingTime }}</strong>
+        <span class="clock-date">{{ beijingDate }}</span>
+      </aside>
     </header>
 
     <section class="workspace">
-      <article class="panel editor-panel">
+      <article class="panel input-panel">
         <div class="panel-head">
           <div>
             <p class="panel-kicker">输入</p>
             <h2>密钥或 otpauth 链接</h2>
           </div>
-          <span class="counter">{{ entryCount }} 条</span>
+          <span class="counter">{{ draftCount }} 行</span>
         </div>
 
         <textarea
-          v-model="input"
+          v-model="draftInput"
           class="input"
           rows="10"
-          placeholder="每行一个 secret 或 otpauth:// URL"
-          @focus="$event.target.select()"
+          placeholder="每行一个，例如：&#10;JBSWY3DPEHPK3PXP&#10;otpauth://totp/AWS:root-account?secret=JBSWY3DPEHPK3PXP&issuer=AWS"
+          spellcheck="false"
         ></textarea>
 
-
         <div class="action-row">
-          <button type="button" class="secondary-btn" :disabled="!input.trim()" @click="clearInput">
-            清空
+          <button type="button" class="primary-btn" :disabled="!draftInput.trim()" @click="generateTokens">
+            生成验证码
+          </button>
+          <button
+            type="button"
+            class="close-btn"
+            :disabled="!draftInput && !submittedInput"
+            @click="clearAll"
+            aria-label="清空"
+            title="清空"
+          >
+            ×
           </button>
         </div>
 
         <div class="mini-strip">
-          <span>{{ validCount }} 有效</span>
-          <span>{{ invalidCount ? `${invalidCount} 错误` : '自动更新' }}</span>
-          <span>本地生成</span>
+          <span>{{ validCount }} 可用</span>
+          <span>{{ invalidCount ? `${invalidCount} 无效` : '等待生成' }}</span>
+          <span>仅浏览器本地计算</span>
         </div>
+
+        <details class="api-details">
+          <summary>
+            <span>API</span>
+            <small>默认折叠</small>
+          </summary>
+
+          <div class="api-body">
+            <p class="api-note">
+              这个页面本身不写数据库，也不依赖后端。下面是你如果要接服务端时，可以直接复用的参数格式。
+            </p>
+
+            <div v-for="example in apiExamples" :key="example.title" class="api-block">
+              <div class="api-block-head">
+                <strong>{{ example.title }}</strong>
+                <button type="button" class="copy-btn" @click="copyText(example.sample)">
+                  复制
+                </button>
+              </div>
+              <pre>{{ example.sample }}</pre>
+              <p>{{ example.description }}</p>
+            </div>
+          </div>
+        </details>
       </article>
 
       <article class="panel result-panel">
-        <div class="result-head">
+        <div class="panel-head">
           <div>
             <p class="panel-kicker">结果</p>
-            <h2>右侧卡片</h2>
+            <h2>验证码展示区</h2>
           </div>
-          <span class="counter">{{ cards.length }} 张</span>
+          <span class="counter">{{ cards.length }} 项</span>
         </div>
 
         <div v-if="cards.length" class="result-grid">
@@ -74,6 +126,7 @@
             </div>
 
             <p class="token-title">{{ card.title }}</p>
+            <p v-if="card.subtitle" class="token-subtitle">{{ card.subtitle }}</p>
 
             <button
               type="button"
@@ -94,7 +147,7 @@
               <span>{{ card.step }} 秒周期</span>
             </div>
 
-            <p v-else class="token-note">检查这一行的格式</p>
+            <p v-else class="token-note">请检查这一行的格式或 secret 内容。</p>
 
             <div v-if="!card.error" class="progress-track" aria-hidden="true">
               <div
@@ -106,7 +159,9 @@
           </article>
         </div>
 
-        <div v-else class="empty-state">把内容贴到左边，右侧会自动展开成多张卡片。</div>
+        <div v-else class="empty-state">
+          输入密钥后点击「生成验证码」，右侧会显示每一条 TOTP。
+        </div>
       </article>
     </section>
   </main>
@@ -116,18 +171,58 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { generateSync } from 'otplib';
 
-
-const input = ref('');
+const draftInput = ref('');
+const submittedInput = ref('');
 const copiedId = ref('');
-const currentTime = ref(Date.now());
+const now = ref(Date.now());
 
 let clockId = null;
 let copiedTimerId = null;
 
+const apiExamples = [
+  {
+    title: 'GET /api/totp',
+    sample: 'GET /api/totp?secret=BASE32&digits=6&period=30&algorithm=sha1',
+    description: '单个密钥生成当前验证码，适合做成轻量查询接口。',
+  },
+  {
+    title: 'POST /api/totp/batch',
+    sample: 'POST /api/totp/batch\n{ "items": ["JBSWY3DPEHPK3PXP", "otpauth://totp/AWS:root?secret=..."] }',
+    description: '批量输入，返回每条记录对应的解析结果和当前验证码。',
+  },
+  {
+    title: 'GET /api/time',
+    sample: 'GET /api/time',
+    description: '返回北京时间，和页面右上角保持一致。',
+  },
+];
+
+function formatBeijingTime(value) {
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(value);
+}
+
+function formatBeijingDate(value) {
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).format(value);
+}
+
+function sanitizeSecret(value) {
+  return value.replace(/[\s-]/g, '').toUpperCase();
+}
+
 function parseDigits(value) {
-  if (!value) {
-    return 6;
-  }
+  if (!value) return 6;
 
   const digits = Number.parseInt(value, 10);
   if (![6, 7, 8].includes(digits)) {
@@ -138,13 +233,11 @@ function parseDigits(value) {
 }
 
 function parseStep(value) {
-  if (!value) {
-    return 30;
-  }
+  if (!value) return 30;
 
   const step = Number.parseInt(value, 10);
-  if (![15, 30, 60].includes(step)) {
-    throw new Error('period 仅支持 15、30、60 秒');
+  if (!Number.isFinite(step) || step < 15 || step > 120) {
+    throw new Error('period 需要在 15 到 120 秒之间');
   }
 
   return step;
@@ -152,10 +245,10 @@ function parseStep(value) {
 
 function parseAlgorithm(value) {
   const algorithm = (value || 'sha1').toLowerCase();
-  const validAlgos = ['sha1', 'sha256', 'sha512'];
+  const validAlgorithms = ['sha1', 'sha256', 'sha512'];
 
-  if (!validAlgos.includes(algorithm)) {
-    throw new Error(`algorithm 仅支持 ${validAlgos.join(', ')}`);
+  if (!validAlgorithms.includes(algorithm)) {
+    throw new Error(`algorithm 仅支持 ${validAlgorithms.join(', ')}`);
   }
 
   return algorithm;
@@ -180,7 +273,7 @@ function createBaseEntry(index, rawLine) {
 
 function parseSecretLine(rawLine, index) {
   const entry = createBaseEntry(index, rawLine);
-  entry.secret = rawLine.replace(/\s+/g, '').toUpperCase();
+  entry.secret = sanitizeSecret(rawLine);
 
   if (!entry.secret) {
     entry.error = '密钥不能为空';
@@ -195,7 +288,7 @@ function parseOtpauthLine(rawLine, index) {
   try {
     const url = new URL(rawLine);
 
-    if (url.hostname.toLowerCase() !== 'totp') {
+    if (url.protocol !== 'otpauth:' || url.hostname.toLowerCase() !== 'totp') {
       throw new Error('仅支持 otpauth://totp/');
     }
 
@@ -217,12 +310,12 @@ function parseOtpauthLine(rawLine, index) {
     entry.badge = issuer || pathIssuer || 'otpauth';
     entry.title = account || issuer || `账户 ${index + 1}`;
     entry.subtitle = 'otpauth:// URL';
-    entry.secret = secret.replace(/\s+/g, '').toUpperCase();
+    entry.secret = sanitizeSecret(secret);
     entry.digits = digits;
     entry.step = step;
     entry.algorithm = algorithm;
-  } catch (err) {
-    entry.error = `解析失败：${err.message}`;
+  } catch (error) {
+    entry.error = `解析失败：${error.message}`;
   }
 
   return entry;
@@ -233,13 +326,7 @@ function parseBatch(value) {
     .split(/\r?\n/)
     .map((line, index) => line.trim())
     .filter((line) => line && !line.startsWith('#'))
-    .map((line, index) => {
-      if (line.startsWith('otpauth://')) {
-        return parseOtpauthLine(line, index);
-      }
-
-      return parseSecretLine(line, index);
-    });
+    .map((line, index) => (line.startsWith('otpauth://') ? parseOtpauthLine(line, index) : parseSecretLine(line, index)));
 }
 
 function generateCode(entry) {
@@ -251,7 +338,7 @@ function generateCode(entry) {
   });
 }
 
-function buildCard(entry, now) {
+function buildCard(entry, currentTime) {
   if (entry.error) {
     return {
       ...entry,
@@ -261,37 +348,54 @@ function buildCard(entry, now) {
     };
   }
 
-  const epoch = now / 1000;
+  const epoch = Math.floor(currentTime / 1000);
   const elapsed = epoch % entry.step;
 
-  let code = '';
   try {
-    code = generateCode(entry);
-  } catch (err) {
+    const code = generateCode(entry);
+
     return {
       ...entry,
-      error: err.message,
+      code,
+      remain: Math.max(1, entry.step - elapsed),
+      progress: (elapsed / entry.step) * 100,
+    };
+  } catch (error) {
+    return {
+      ...entry,
+      error: error.message,
       code: '',
       remain: 0,
       progress: 0,
     };
   }
-
-  return {
-    ...entry,
-    code,
-    remain: Math.max(1, Math.ceil(entry.step - elapsed)),
-    progress: (elapsed / entry.step) * 100,
-  };
 }
 
-const parsedEntries = computed(() => parseBatch(input.value));
-const cards = computed(() => parsedEntries.value.map((entry) => buildCard(entry, currentTime.value)));
-const entryCount = computed(() => parsedEntries.value.length);
+const parsedEntries = computed(() => parseBatch(submittedInput.value));
+const cards = computed(() => parsedEntries.value.map((entry) => buildCard(entry, now.value)));
+const draftCount = computed(() => parseBatch(draftInput.value).length);
 const validCount = computed(() => cards.value.filter((card) => !card.error).length);
 const invalidCount = computed(() => cards.value.filter((card) => card.error).length);
-function clearInput() {
-  input.value = '';
+const beijingTime = computed(() => formatBeijingTime(now.value));
+const beijingDate = computed(() => formatBeijingDate(now.value));
+
+function generateTokens() {
+  submittedInput.value = draftInput.value.trim();
+}
+
+function clearAll() {
+  draftInput.value = '';
+  submittedInput.value = '';
+  copiedId.value = '';
+  clearTimeout(copiedTimerId);
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Clipboard access can fail in some browser contexts.
+  }
 }
 
 async function copyCode(card) {
@@ -313,15 +417,15 @@ async function copyCode(card) {
   }
 }
 
-watch(input, () => {
+watch(draftInput, () => {
   copiedId.value = '';
   clearTimeout(copiedTimerId);
 });
 
 onMounted(() => {
   clockId = setInterval(() => {
-    currentTime.value = Date.now();
-  }, 250);
+    now.value = Date.now();
+  }, 1000);
 });
 
 onUnmounted(() => {
