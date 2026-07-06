@@ -29,22 +29,8 @@
           @focus="$event.target.select()"
         ></textarea>
 
-        <div class="sample-row">
-          <button
-            v-for="sample in samplePresets"
-            :key="sample.label"
-            type="button"
-            class="chip"
-            @click="loadSample(sample.value)"
-          >
-            {{ sample.label }}
-          </button>
-        </div>
 
         <div class="action-row">
-          <button type="button" class="primary-btn" @click="loadSample(demoBatch)">
-            示例
-          </button>
           <button type="button" class="secondary-btn" :disabled="!input.trim()" @click="clearInput">
             清空
           </button>
@@ -128,31 +114,8 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { createGuardrails, generateSync } from 'otplib';
+import { generateSync } from 'otplib';
 
-const totpGuardrails = createGuardrails({ MIN_SECRET_BYTES: 10 });
-
-const demoBatch = [
-  'otpauth://totp/Demo-Account:root-account?secret=KZQW4ZLON5XW6ZLNMU3D4YJY&issuer=Demo',
-  'otpauth://totp/Demo-Account:root-account?secret=KZQW4ZLON5XW6ZLNMU3D4YJY&issuer=Demo',
-  'otpauth://totp/Demo-Account:root-account?secret=KZQW4ZLON5XW6ZLNMU3D4YJY&issuer=Demo',
-  'otpauth://totp/Demo-Account:root-account?secret=KZQW4ZLON5XW6ZLNMU3D4YJY&issuer=Demo',
-].join('\n');
-
-const samplePresets = [
-  {
-    label: '4条',
-    value: demoBatch,
-  },
-  {
-    label: 'AWS',
-    value: 'otpauth://totp/AWS:root-account?secret=JBSWY3DPEHPK3PXP&issuer=AWS',
-  },
-  {
-    label: 'Base32',
-    value: 'JBSWY3DPEHPK3PXP',
-  },
-];
 
 const input = ref('');
 const copiedId = ref('');
@@ -160,21 +123,6 @@ const currentTime = ref(Date.now());
 
 let clockId = null;
 let copiedTimerId = null;
-
-const beijingTimeFormatter = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hour12: false,
-});
-
-const beijingDateFormatter = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai',
-  weekday: 'short',
-  month: 'long',
-  day: 'numeric',
-});
 
 function parseDigits(value) {
   if (!value) {
@@ -300,7 +248,6 @@ function generateCode(entry) {
     digits: entry.digits,
     period: entry.step,
     algorithm: entry.algorithm,
-    guardrails: totpGuardrails,
   });
 }
 
@@ -343,13 +290,6 @@ const cards = computed(() => parsedEntries.value.map((entry) => buildCard(entry,
 const entryCount = computed(() => parsedEntries.value.length);
 const validCount = computed(() => cards.value.filter((card) => !card.error).length);
 const invalidCount = computed(() => cards.value.filter((card) => card.error).length);
-const beijingTime = computed(() => beijingTimeFormatter.format(new Date(currentTime.value)));
-const beijingDate = computed(() => beijingDateFormatter.format(new Date(currentTime.value)));
-
-function loadSample(value) {
-  input.value = value;
-}
-
 function clearInput() {
   input.value = '';
 }
