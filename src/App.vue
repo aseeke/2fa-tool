@@ -155,7 +155,7 @@ const samplePresets = [
   },
 ];
 
-const input = ref(demoBatch);
+const input = ref('');
 const copiedId = ref('');
 const currentTime = ref(Date.now());
 
